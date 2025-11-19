@@ -1,0 +1,37 @@
+# CHTC maintained container for AlphaFold3 as of January 2025
+#container_image = osdf:///ospool/uw-shared/OSG-Staff/public/alphafold3/alphafold3.minimal.22Jan2025_v1.sif
+container_image = file:///staging/groups/glbrc_alphafold/af3/alphafold3.minimal.22Jan2025.sif
+
+executable = scripts/data_pipeline.sh
+
+log = ../logs/data_pipeline.log
+output = data_pipeline_$(Cluster)_$(Process).out
+error  = data_pipeline_$(Cluster)_$(Process).err
+
+initialdir = $(directory)
+# transfer all files in the data_inputs directory
+transfer_input_files = data_inputs/
+
+should_transfer_files = YES
+when_to_transfer_output = ON_EXIT
+
+# We need this to transfer the databases to the execute node
+Requirements = (Target.HasCHTCStaging == true)
+
+if defined USE_SMALL_DB
+  # testing requirements
+  request_memory = 8GB
+  request_disk = 16GB
+  request_cpus = 4
+  arguments = --smalldb --work_dir_ext $(Cluster)_$(Process) --verbose
+else
+  # full requirements
+  request_memory = 8GB
+  # Request less disk if matched machine already has AF3 DB preloaded (650GB savings)
+  request_disk = 700000 - ( (TARGET.HasAlphaFold3?: 1) * 650000)
+  request_cpus = 8
+  arguments = --work_dir_ext $(Cluster)_$(Proc) 
+endif
+
+#queue directory matching job*
+queue directory from list_of_af3_jobs.txt
