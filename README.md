@@ -449,8 +449,6 @@ The script will also check the matched machine's MachineAd, after the job has ma
 > [!TIP]  
 > AlphaFold3 jobs can be resource-intensive, especially when using the very conserved query sequences. Conserved sequenced can generally **very deep alignments** which will require signifantly more memory. If you encounter out-of-memory errors during job execution, consider increasing the `request_memory` attribute in your submit file. You can also utilize the `retry_request_memory = <memory/expression>` command in your submit file to request a retry if the job holds for an out-of-memory error. For more information on how to use `retry_request_memory`, visit our [Request variable memory](https://chtc.cs.wisc.edu/uw-research-computing/variable-memory#use-retry_request_memory) documentation page.
 
-```bash
-
 4. Submit your data-pipeline jobs:
 
     ```
