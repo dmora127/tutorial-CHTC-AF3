@@ -125,28 +125,13 @@ Separating these steps allows researchers to mix-and-match resource allocation s
 
 The first stage of AlphaFold3 prepares all input features needed for structure prediction. This step is entirely CPU-driven and dominated by database searches and feature construction.
 
-#### What the Data Pipeline Does
+The data stage loads:
 
-AF3’s data pipeline performs the following major tasks:
+* Input JSON files (user-supplied)
+* AlphaFold3 reference databases (pre-staged on CHTC nodes)
+* AF3 container environment
 
-   1. MMseqs2 Search<br>
-   Uses MMseqs2 to search large protein sequence databases (e.g., UniRef, MGnify) to build MSAs.<br>
-   _This provides evolutionary depth and signals conserved interactions._
-
-   2. HMMER Search<br>
-   Runs profile HMM searches to detect more remote homology and increase sensitivity for sequences with few known relatives.
-
-   3. Template Retrieval (Optional)<br>
-   Searches structural databases (e.g., PDB mmCIF) for homologous structures.<br>
-   Templates provide complementary spatial constraints and can dramatically improve prediction accuracy when good matches exist.
-
-   4. Feature Construction and Packaging <br>
-   AF3 organizes MSAs, templates, and metadata into a standardized directory and packages them into:
-       ```bash
-       <job>.data_pipeline.tar.gz
-       ```
-
-#### Why This Runs on CPU Machines at CHTC
+The data pipeline requires:
 
 * Database searches are CPU-intensive and parallelize extremely well.
 * Storage needs are substantial (~750 GB of AF3 databases), so CHTC provides pre-staged databases on select nodes.
@@ -158,50 +143,25 @@ This stage can be run for dozens, hundreds, or thousands of sequences simultaneo
 
 Once the data pipeline has produced MSAs and templates, AF3’s second stage uses this information to generate atomic-resolution structural models.
 
-#### What the Inference Pipeline Does
-
 The inference stage loads:
 
 * precomputed MSAs and template features (from Step 1)
 * model weights (user-supplied)
 * AF3 container environment
 
-It then performs:
-
-1. Model Initialization & Tokenization <br>
-The system converts all inputs into internal tokens for attention-based processing.<br>
-Token counts relate directly to GPU memory demands.
-
-2. Diffusion-Based Structure Prediction<br>
-AF3 iteratively denoises and refines a 3D structure using diffusion and attention mechanisms.<br>
-This is the most GPU-intensive part of the workflow.
-
-3. Per-Seed Sampling & Ranking<br>
-AF3 generates multiple predictions per job (depending on settings) and outputs:
-   * ranked structures
-   * confidence scores (e.g., pLDDT, PAE-like metrics)
-   * intermediate trajectory snapshots (optional)
-
-4. Output Packaging<br>
-Results are tarballed as:
-    ```bash
-    <job>.inference_pipeline.tar.gz
-    ```
-#### Why This Runs on GPU Machines at CHTC
-
 The inference pipeline requires:
 
-* large matrix multiplications on GPUs
-* high GPU memory capacity for complexes and nucleic acid assemblies
-* JAX/XLA runtime optimizations available only on GPU-enabled nodes
+* Varying GPU memory capacity for complexes and nucleic acid assemblies
 
-* CHTC’s GPU Lab and GPU Open Capacity provide the necessary range of GPUs and allow users to scale inference jobs across many machines in parallel.
+CHTC’s GPU Lab and GPU Open Capacity provide the necessary range of GPUs and allow users to scale inference jobs across many machines in parallel.
 
 ## Running AlphaFold3 on CHTC
 
 ### Set Up Your Software Environment
 CHTC maintains a shared Apptainer container for AlphaFold3, which we **highlyrecommend most researchers use on CHTC's systems**. However, if you wish to build your own AlphaFold3 container (for example, to include custom models or software versions), follow the steps below to create your own Apptainer container image.
 
+<details>
+<summary>Click to expand: Building Your Own AlphaFold3 Apptainer Container (Advanced)</summary>
 1. On your local machine, clone the AlphaFold3 repository:
 
     ```bash
@@ -231,12 +191,7 @@ CHTC maintains a shared Apptainer container for AlphaFold3, which we **highlyrec
     ```bash
     apptainer build alphafold3.sif docker://<your-dockerhub-username>/alphafold3:latest
    ```
-   
-6. Verify that the Apptainer image was created successfully:
-
-    ```bash
-    apptainer exec alphafold3.sif python3 -c "import alphafold3; print(alphafold3.__version__)"
-   ```
+</details>
 
 ### Data Wrangling and Preparing AlphaFold3 Inputs
 
