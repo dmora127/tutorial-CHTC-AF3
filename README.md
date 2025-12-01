@@ -2,7 +2,7 @@
 
 A two-phase workflow: alignment generation → structure prediction
 
-AlphaFold3 (AF3) is a next-generation biomolecular structure prediction system capable of modeling multichain protein complexes, DNA/RNA interactions, ligands, and modified residues (e.g., 2′-O-methylated RNAs or glycosylated amino acids). This guide provides a step-by-step workflow for running AF3 on the CHTC HTC ecosystem, including how to structure your project, prepare input JSON files, run many inference jobs with HTCondor, and store your results using OSDF.
+AlphaFold3 (AF3) is a next-generation biomolecular structure prediction system capable of modeling multichain protein complexes, DNA/RNA interactions, ligands, and modified residues (e.g., 2′-O-methylated RNAs or glycosylated amino acids). This guide provides a step-by-step workflow for running AF3 on the CHTC HTC ecosystem, including how to structure your project, prepare input JSON files, run many inference jobs with HTCondor, and transfer your inputs/results using OSDF.
 
 AlphaFold3 workloads in high-throughput environments are best organized into two separate job types:
 * **Step 1: Generating the Alignments (Data-Only Pipeline)**
@@ -14,7 +14,6 @@ AlphaFold3 workloads in high-throughput environments are best organized into two
   * Load the precomputed fold_input.json 
   * Run the AF3 diffusion model 
   * Produce PDB models, ranking, trajectories, and metrics
-
 
 You will learn how to:
 
