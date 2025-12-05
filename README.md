@@ -88,6 +88,8 @@ Estimated time: plan ~1–2 hours for the tutorial walkthrough. Each pipeline ex
 > [!WARNING]
 > Requesting AlphaFold3 model weights requires agreeing to DeepMind's terms of service. Ensure you comply with all licensing and usage restrictions when using AF3 for research. This tutorial does not distribute AF3 model weights. Requesting the weights can take up to several weeks. Ensure you have them before starting the tutorial.
 
+#### Clone the Tutorial Repository
+
 1. Log into your CHTC account:
     
     ```bash

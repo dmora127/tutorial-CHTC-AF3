@@ -1,0 +1,148 @@
+#!/usr/bin/env python3
+"""
+Generate AlphaFold3 job directories from a manifest CSV.
+
+Manifest structure:
+    job_name, mol1_type, mol1_chain, mol1_seq, mol2_type, mol2_chain, mol2_seq, ...
+
+Where molecule types can be:
+    - protein
+    - rna
+    (extendable)
+
+Usage:
+    python make_af3_jobs.py --manifest manifest.csv --output_dir AF3_Jobs
+"""
+
+import os
+import csv
+import json
+import argparse
+
+
+# Optional: CCD mappings for 3′ 2′-O-methyl modifications
+CCD_MAP = {
+    "A": "MAD",   # 2'-O-methyl-A
+    "C": "OMC",
+    "G": "OMG",
+    "U": "OMU"
+}
+
+
+def build_molecule_block(molecule_type, chain_id, sequence, apply_mods=True):
+    """
+    Build the AF3 JSON block for a single molecule.
+    Supports:
+        - single chain ("A")
+        - multichain ("A|C|D")  ➜ ["A", "C", "D"]
+    Supports automatic RNA 3'-O-methylation.
+    """
+
+    sequence = sequence.strip()
+
+    # Convert chains: "A|B|C" → ["A","B","C"]
+    if "|" in chain_id:
+        chains = [c.strip() for c in chain_id.split("|") if c.strip()]
+    else:
+        chains = chain_id.strip()  # single-chain mode
+
+    block = {
+        molecule_type: {
+            "id": chains,
+            "sequence": sequence
+        }
+    }
+
+    # Optional RNA modifications
+    if molecule_type.lower() == "rna" and apply_mods:
+        seq_u = sequence.upper()
+        last_base = seq_u[-1]
+        if last_base in CCD_MAP:
+            block[molecule_type]["modifications"] = [
+                {
+                    "modificationType": CCD_MAP[last_base],
+                    "basePosition": len(seq_u)
+                }
+            ]
+
+    return block
+
+
+def parse_molecules(row_dict):
+    """
+    Find all molecule triplets in the row:
+        molN_type, molN_chain, molN_seq
+    Returns a list of molecule blocks.
+    """
+
+    molecules = []
+    idx = 1
+
+    while True:
+        type_key  = f"mol{idx}_type"
+        chain_key = f"mol{idx}_chain"
+        seq_key   = f"mol{idx}_seq"
+
+        # Stop when we no longer find molN_type
+        if type_key not in row_dict:
+            break
+
+        mol_type  = row_dict[type_key].strip()
+        mol_chain = row_dict[chain_key].strip()
+        mol_seq   = row_dict[seq_key].strip()
+
+        if mol_type and mol_chain and mol_seq:
+            molecules.append(build_molecule_block(mol_type, mol_chain, mol_seq))
+
+        idx += 1
+
+    return molecules
+
+
+def main():
+    parser = argparse.ArgumentParser(description="Generate AF3 job directories for multi-molecule inputs.")
+    parser.add_argument("--manifest", required=True, help="Path to manifest CSV")
+    parser.add_argument("--output_dir", required=True, help="Where to create job directories")
+    args = parser.parse_args()
+
+    os.makedirs(args.output_dir, exist_ok=True)
+
+    with open(args.manifest, newline="") as csvfile:
+        reader = csv.DictReader(csvfile)
+
+        if "job_name" not in reader.fieldnames:
+            raise ValueError("Manifest must include a 'job_name' column.")
+
+        for idx, row in enumerate(reader, start=1):
+            job_name = row["job_name"].strip()
+            job_dir_name = f"Job{idx}_{job_name}"
+            job_dir = os.path.join(args.output_dir, job_dir_name)
+
+            data_inputs = os.path.join(job_dir, "data_inputs")
+            inference_inputs = os.path.join(job_dir, "inference_inputs")
+
+            os.makedirs(data_inputs, exist_ok=True)
+            os.makedirs(inference_inputs, exist_ok=True)
+
+            # Extract molecules (protein/RNA/etc.)
+            molecules = parse_molecules(row)
+
+            fold_json = {
+                "name": job_name,
+                "sequences": molecules,
+                "modelSeeds": [1],
+                "dialect": "alphafold3",
+                "version": 1
+            }
+
+            json_path = os.path.join(data_inputs, "fold_input.json")
+            with open(json_path, "w") as jf:
+                json.dump(fold_json, jf, indent=2)
+
+            print(f"[+] Created {job_dir_name} with {len(molecules)} molecules.")
+
+    print("\nAll multi-molecule AF3 job directories generated.")
+
+
+if __name__ == "__main__":
+    main()
