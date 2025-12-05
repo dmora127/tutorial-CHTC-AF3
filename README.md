@@ -104,7 +104,6 @@ Estimated time: plan ~1–2 hours for the tutorial walkthrough. Each pipeline ex
   git clone https://github.com/dmora127/tutorial-CHTC-AF3.git
   cd tutorial-CHTC-AF3/
   ```
-  _This script creates the directory structure in your home directory `/home/<user.name>/tutorial-CHTC-AF3/` and CHTC directory `/staging/<netID>/tutorial-CHTC-AF3/`, along with several subdirectories used in this tutorial._
 
 3. Create a directory in your `/staging/<netid>/` path titled `tutorial-CHTC-AF3`.
 
