@@ -239,7 +239,9 @@ As your jobs progress through the two phases of the AlphaFold3 workflow, the out
 └── node9.inference_pipeline.tar.gz        # tar.gz output from inference pipeline (final results)
 ```
 
-Each job directory holds the inputs and outputs for one AF3 run. Automate creation with the provided generator script (`scripts/generate-job-directories.py`).
+Each job directory holds the inputs and outputs for one AF3 run. 
+
+##### Automate creation with the provided generator script (`scripts/generate-job-directories.py`).
 
 1. Setup a CSV manifest containing your protein sequences in FASTA format in the `data/protein_sequences/` directory. Each FASTA file should contain a single protein sequence. The CSV should follow this format: 
 
