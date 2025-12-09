@@ -27,34 +27,38 @@ You will learn how to:
 
 All of these steps run across hundreds (or thousands) of jobs using the HTCondor workload manager and Apptainer containers to execute your software reliably and reproducibly at scale. The tutorial uses realistic genomics data and emphasizes performance, reproducibility, and portability. You will work with real data and see how high-throughput computing (HTC) can accelerate your workflows.
 
-![Workflow_Diagram.png](.images/Workflow_Diagram.png)
+![Overview of the AlphaFold3 Pipeline](.images/af3_overview.png)
 
 **Start here**
-- [Tutorial Setup](#tutorial-setup)
-   * [Assumptions](#assumptions)
-   * [Prerequisites](#prerequisites)
-- [Understanding the AlphaFold3 Workflow](#understanding-the-alphafold3-workflow)
-   * [The CPU-Only Pipeline: Generating Alignments (Step 1)](#the-cpu-only-pipeline-generating-alignments-step-1)
-      + [What the Data Pipeline Does](#what-the-data-pipeline-does)
-      + [Why This Runs on CPU Machines at CHTC](#why-this-runs-on-cpu-machines-at-chtc)
-- [The GPU-Accelerated Pipeline: Structural Prediction (Step 2)](#the-gpu-accelerated-pipeline-structural-prediction-step-2)
-      + [What the Inference Pipeline Does](#what-the-inference-pipeline-does)
-      + [Why This Runs on GPU Machines at CHTC](#why-this-runs-on-gpu-machines-at-chtc)
-- [Running AlphaFold3 on CHTC](#running-alphafold3-on-chtc)
-   * [Set Up Your Software Environment](#set-up-your-software-environment)
-   * [Data Wrangling and Preparing AlphaFold3 Inputs](#data-wrangling-and-preparing-alphafold3-inputs)
-      + [Setting Up AlphaFold3 Input JSONs and Job Directories](#setting-up-alphafold3-input-jsons-and-job-directories)
-      + [Preparing Your _List of (AlphaFold) Jobs_](#preparing-your-list-of-alphafold-jobs)
-   * [Submit Your AlphaFold3 Jobs - CPU-Intensive Alignment Generation (Step 1)](#submit-your-alphafold3-jobs---cpu-intensive-alignment-generation-step-1)
-      + [AlphaFold3 Databases Availability on CHTC](#alphafold3-databases-availability-on-chtc)
-   * [Visualize Your AlphaFold3 Results](#visualize-your-alphafold3-results)
-- [Next Steps](#next-steps)
-   * [Software](#software)
-   * [Data](#data)
-      + [Key AF3 data components include:](#key-af3-data-components-include)
-   * [GPUs](#gpus)
-      + [Key AF3 GPU considerations:](#key-af3-gpu-considerations)
-- [Getting Help](#getting-help)
+- [Predicting Protein Structures with AlphaFold3 on the CHTC GPU Capacity](#predicting-protein-structures-with-alphafold3-on-the-chtc-gpu-capacity)
+   * [Introduction](#introduction)
+   * [Tutorial Setup](#tutorial-setup)
+      + [Assumptions and Expectations](#assumptions-and-expectations)
+         - [Time Estimation](#time-estimation)
+      + [Prerequisites](#prerequisites)
+         - [Clone the Tutorial Repository](#clone-the-tutorial-repository)
+         - [About the Toy Dataset](#about-the-toy-dataset)
+   * [Understanding the AlphaFold3 Workflow](#understanding-the-alphafold3-workflow)
+      + [The CPU-Only Pipeline: Generating Alignments (Stage 1)](#the-cpu-only-pipeline-generating-alignments-stage-1)
+      + [The GPU-Accelerated Pipeline: Structural Prediction (Stage 2)](#the-gpu-accelerated-pipeline-structural-prediction-stage-2)
+   * [Running AlphaFold3 on CHTC](#running-alphafold3-on-chtc)
+      + [Set Up Your Software Environment](#set-up-your-software-environment)
+      + [Data Wrangling and Preparing AlphaFold3 Inputs](#data-wrangling-and-preparing-alphafold3-inputs)
+         - [Setting Up AlphaFold3 Input JSONs and Job Directories](#setting-up-alphafold3-input-jsons-and-job-directories)
+            * [Automate creation with the provided generator script (`scripts/generate-job-directories.py`).](#automate-creation-with-the-provided-generator-script-scriptsgenerate-job-directoriespy)
+         - [Preparing Your _List of (AlphaFold) Jobs_](#preparing-your-list-of-alphafold-jobs)
+      + [Submit Your AlphaFold3 Jobs - CPU-Intensive Alignment Generation (Step 1)](#submit-your-alphafold3-jobs---cpu-intensive-alignment-generation-step-1)
+         - [AlphaFold3 Databases Availability on CHTC](#alphafold3-databases-availability-on-chtc)
+      + [Submit Your AlphaFold3 Jobs - GPU-Accelerated Structural Prediction (Step 2)](#submit-your-alphafold3-jobs---gpu-accelerated-structural-prediction-step-2)
+      + [Visualize Your AlphaFold3 Results](#visualize-your-alphafold3-results)
+   * [Next Steps](#next-steps)
+   * [Glossary](#glossary)
+      + [Software](#software)
+      + [Data](#data)
+         - [Key AF3 data components include:](#key-af3-data-components-include)
+      + [GPUs](#gpus)
+         - [Key AF3 GPU considerations:](#key-af3-gpu-considerations)
+   * [Getting Help](#getting-help)
 
 <!-- TOC end -->
 
@@ -336,7 +340,7 @@ There are many ways to create a "list of jobs" directly in your HTCondor submit 
 
 The data-pipeline stage prepares all alignments, templates, and features needed for AF3 prediction. These CPU-only jobs run on CHTC’s standard compute nodes and can be scaled to many sequences at once. In the steps below, you’ll submit one data-pipeline job per sequence, producing the feature tarballs required for the GPU inference stage.
 
-[INSERT GRAPHIC OF ALPHAFOLD3 WORKFLOW WITH DATA PIPELINE HIGHLIGHTED]
+![Overview of the AlphaFold3 Data Pipeline](.images/data_pipeline.png)
 
 #### AlphaFold3 Databases Availability on CHTC
 
@@ -364,7 +368,7 @@ You can target these pre-staged database nodes specifically by adding the requir
    - Tarballing the resulting `data_pipeline` outputs for transfer back to the Access Point  
    - Cleaning up the job sandbox to minimize disk use
 
-    #### 1. Checking for Pre-Staged AF3 Databases
+    ##### 1. Checking for Pre-Staged AF3 Databases
 
     CHTC hosts a copy of the AlphaFold3 databases locally on certain machines. Machines with these databases advertise this resource availability using the `HasAlphafold3` HTCondor MachineAd. The script is able to run on machines with/without these databases pre-loaded. The script inspects `.machine.ad` to see whether the matched machine advertises the availability of AF3 databases:
     
@@ -390,7 +394,7 @@ You can target these pre-staged database nodes specifically by adding the requir
    
     Databases may be updated periodically by CHTC staff. If you require a custom database set (e.g., reduced-size databases for testing), you can modify the script to use your own database tarballs. Contact the CHTC Research Computing Facilitation team for assistance.
 
-    #### 2. Command-Line Options
+    ##### 2. Command-Line Options
     
     | Flag | Meaning |
     |------|---------|
@@ -403,7 +407,7 @@ You can target these pre-staged database nodes specifically by adding the requir
     | `--smalldb` | Use a reduced-size database set |
     | `--extracted_database_path <path>` | Use provided database directory |
 
-    #### 3. Working Directory Setup
+    ##### 3. Working Directory Setup
     
     Creates:
     
@@ -418,7 +422,7 @@ You can target these pre-staged database nodes specifically by adding the requir
     
     Moves all `*.json` into `af_input/`.
     
-    #### 4. Running the AlphaFold3 Data Pipeline
+    ##### 4. Running the AlphaFold3 Data Pipeline
     
     Inside the container:
     
@@ -428,7 +432,7 @@ You can target these pre-staged database nodes specifically by adding the requir
     
     Generates all alignment and feature files under `af_output/<job_name>/`.
      
-    #### 5. Packaging Results
+    ##### 5. Packaging Results
     
     Each output directory is archived:
     
@@ -514,7 +518,7 @@ Once the data-pipeline jobs have finished generating alignments and features, th
 
 This stage **does not** require the full AlphaFold3 databases, only the model weights and the feature tarballs produced in Step 1. As a result, you can run these jobs on a wider range of GPU Execute Points without worrying about database availability, including GPU EPs outside of CHTC on the OSPool. To learn more about using additional capacity beyond CHTC, visit our guide on [Scale Beyond Local HTC Capacity](https://chtc.cs.wisc.edu/uw-research-computing/scaling-htc). 
 
-[INSERT GRAPHIC OF ALPHAFOLD3 WORKFLOW WITH INFERENCE PIPELINE HIGHLIGHTED]
+![Overview of the AlphaFold3 Inference Pipeline](.images/inference_pipeline.png)
 
 1. Change to your `tutorial-CHTC-AF3/` directory:
     ```bash
@@ -536,7 +540,7 @@ This stage **does not** require the full AlphaFold3 databases, only the model we
    - Packaging predicted structures and metadata  
    - Cleaning up the job sandbox to minimize disk use
 
-    #### 1. Model Parameters and Containers
+    ##### 1. Model Parameters and Containers
 
     Unlike the data pipeline, the inference stage does **not need the full AlphaFold3 databases**. It only requires:
 
@@ -551,7 +555,7 @@ This stage **does not** require the full AlphaFold3 databases, only the model we
 
     If the model weights are compressed (`.zst`), the script automatically decompresses them into the working directory. 
 
-    #### 2. Command-Line Options
+    ##### 2. Command-Line Options
 
     | Flag | Meaning |
     |------|---------|
@@ -563,7 +567,7 @@ This stage **does not** require the full AlphaFold3 databases, only the model we
     | `--user_specified_alphafold_options` | Additional arguments passed directly to `run_alphafold.py` |
     | `--enable_unified_memory` | Enable unified GPU memory mode for large jobs |
 
-    #### 3. Working Directory Setup
+    ##### 3. Working Directory Setup
 
     Creates:
 
@@ -583,7 +587,7 @@ This stage **does not** require the full AlphaFold3 databases, only the model we
 
     These archives are extracted into `af_input/`, reconstructing the full feature directory structure required by AlphaFold3.
 
-    #### 4. Preparing Model Weights
+    ##### 4. Preparing Model Weights
 
     Valid model weights may be provided in either uncompressed or `.zst` form. The script handles both:
 
@@ -596,7 +600,7 @@ This stage **does not** require the full AlphaFold3 databases, only the model we
       cp af3.bin models/
       ```
 
-    #### 5. GPU Capability Handling
+    ##### 5. GPU Capability Handling
 
     The script inspects the GPU compute capability using:
 
@@ -611,7 +615,7 @@ This stage **does not** require the full AlphaFold3 databases, only the model we
 
     Users may also enable unified memory mode if working with especially large complexes.
 
-    #### 6. Running the AlphaFold3 Inference Stage
+    ##### 6. Running the AlphaFold3 Inference Stage
 
     Inside the container, the script executes:
 
@@ -637,7 +641,7 @@ This stage **does not** require the full AlphaFold3 databases, only the model we
     - Ranking scores  
     - Seed/sample-level predictions  
 
-    #### 7. Packaging Results
+    ##### 7. Packaging Results
 
     Each prediction directory under `af_output/` is archived:
 
@@ -647,7 +651,7 @@ This stage **does not** require the full AlphaFold3 databases, only the model we
 
     These tarballs are returned to the submit host for downstream use.
 
-    #### 8. Cleanup
+    ##### 8. Cleanup
 
     After packaging the results, the script removes:
 
