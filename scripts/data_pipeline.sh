@@ -233,8 +233,6 @@ if [ -z "$EXTRACTED_DATABASE_PATH" ] ; then
   printverbose "Completed database installation"
 fi
 
-
-
 if [[ -n "$SINGIMG" ]] ; then
   # TMPDIR is sometimes needed because jackhmmer sometimes runs out of 
   # space on the regular tmp drive if too many sequences match
@@ -255,7 +253,8 @@ if [[ -n "$SINGIMG" ]] ; then
     --run_inference=false \
     --input_dir=/root/af_input \
     --model_dir=/root/models \
-    --output_dir=/root/af_output
+    --output_dir=/root/af_output \
+    || exitcode=$?
 else # we must already be in the container
   WORK_DIR_FULL_PATH=`realpath ${WORK_DIR}` # full path to working directory
   EXTRACTED_DATABASE_FULL_PATH=`realpath "${EXTRACTED_DATABASE_PATH}"`
@@ -272,8 +271,15 @@ else # we must already be in the container
        --run_data_pipeline=true \
        --run_inference=false \
        --input_dir="${WORK_DIR_FULL_PATH}/af_input" \
-       --output_dir="${WORK_DIR_FULL_PATH}/af_output" 
+       --output_dir="${WORK_DIR_FULL_PATH}/af_output" \
+    || exitcode=$?
   popd # back to execution directory
+fi
+
+# PROPAGATE ERROR BACK TO HTCONDOR
+if (( exitcode != 0 )); then
+    printerr "Alphafold3 FAILED with exit code ${exitcode}"
+    exit $exitcode
 fi
 
 printverbose "Finished running Alphafold3 data pipeline. Packing up output dir"

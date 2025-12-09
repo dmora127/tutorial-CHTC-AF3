@@ -2,6 +2,8 @@
 
 #set -x #for complete debugging
 
+set -euo pipefail
+
 # STAGING_DIR is used to find the Singularity image (and databases)
 # It is not used if this script is run inside a container
 # Also, since this script does inference only, it doesn't need the databases
@@ -216,6 +218,8 @@ printinfo "EXTRA_RUN_ALPHAFOLD_FLAGS: $EXTRA_RUN_ALPHAFOLD_FLAGS"
 printinfo "EXTRA_APPTAINER_ENV      : $EXTRA_APPTAINER_ENV"
 printinfo "USER_SPECIFIED_AF3_OPTIONS: $USER_SPECIFIED_AF3_OPTIONS"
 
+exitcode=0
+
 if [[ -n "$SINGIMG" ]] ; then # use apptainer to run the container
   apptainer exec \
      --bind "${WORK_DIR}/af_input":/root/af_input \
@@ -233,7 +237,8 @@ if [[ -n "$SINGIMG" ]] ; then # use apptainer to run the container
      --input_dir=/root/af_input \
      --model_dir=/root/models \
      --output_dir=/root/af_output \
-     $EXTRA_RUN_ALPHAFOLD_FLAGS $USER_SPECIFIED_AF3_OPTIONS
+     $EXTRA_RUN_ALPHAFOLD_FLAGS $USER_SPECIFIED_AF3_OPTIONS \
+    || exitcode=$?
 else # we must already be in the container
   WORK_DIR_FULL_PATH=`realpath ${WORK_DIR}` # full path to working directory
   pushd /app/alphafold
@@ -244,8 +249,15 @@ else # we must already be in the container
        --run_inference=true \
        --input_dir="${WORK_DIR_FULL_PATH}/af_input" \
        --output_dir="${WORK_DIR_FULL_PATH}/af_output" \
-       $EXTRA_RUN_ALPHAFOLD_FLAGS $USER_SPECIFIED_AF3_OPTIONS
+       $EXTRA_RUN_ALPHAFOLD_FLAGS $USER_SPECIFIED_AF3_OPTIONS \
+      || exitcode=$?
   popd # back to execution directory
+fi
+
+# PROPAGATE ERROR BACK TO HTCONDOR
+if (( exitcode != 0 )); then
+    printerr "Alphafold3 FAILED with exit code ${exitcode}"
+    exit $exitcode
 fi
 
 printverbose "Finished running Alphafold3 inference pipeline. Packing up output dir"
