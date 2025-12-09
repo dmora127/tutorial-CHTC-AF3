@@ -785,21 +785,23 @@ Now that you've successfully run the full AlphaFold3 two-stage workflow on the C
 
 ## Glossary
 
-- **AF3 / AlphaFold3:** A diffusion-based deep learning system that predicts atomic-resolution structures for proteins, nucleic acids, and complexes.
-- **MSA (Multiple Sequence Alignment):** An alignment of homologous sequences used to infer evolutionary relationships and structural constraints.
-- **Template:** An experimentally determined structure (e.g., from PDB) used to guide modeling when available.
-- **Fold input JSON / fold_input.json:** The AF3 input file containing sequences, chain IDs, and optional references to precomputed features.
-- **Data pipeline:** The CPU stage that runs sequence searches (MMseqs2/HMMER), collects templates, and generates MSA/template features for inference.
-- **Inference pipeline:** The GPU stage that loads model weights and feature files to produce predicted structures and metrics.
-- **Model weights:** The trained parameters required by AF3 to perform inference (typically provided as `.bin` or `.bin.zst` files).
-- **Tarball (.tar.gz):** A compressed archive used to package pipeline outputs for transfer back to the submit host.
-- **HTCondor submit file (.sub):** A job description file used by HTCondor to submit tasks to the HTC system.
-- **Apptainer:** A container runtime (formerly Singularity) commonly used on HPC/HTC systems to run reproducible environments.
-- **Tokens:** A unit of sequence length used by AF3; roughly 1.2 × residue count across chains is a common token estimate.
-- **Unified memory:** A mode that allows AF3 to use system RAM in addition to GPU memory to accommodate very large jobs (slower than GPU-only execution).
-- **OSDF:** CHTC's object-store/file-transfer mechanisms used for staging or retrieving large files (used in some transfer examples).
-- **Pelican:** A data-transfer tool used to fetch example datasets or objects (see Pelican object storage usage in the repo).
-- **JAX:** The numerical computing library used by AF3 for model execution on CPU/GPU backends.
+| Term                                  | Definition                                                                                                                                                 |
+|---------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| AF3 / AlphaFold3                     | Diffusion-based deep learning system that predicts atomic-resolution structures for proteins, nucleic acids, and complexes.                                |
+| MSA (Multiple Sequence Alignment)    | Alignment of homologous sequences used to infer evolutionary relationships and structural constraints.                                                     |
+| Template                             | Experimentally determined structure (e.g., from PDB) used to guide modeling when available.                                                                |
+| Fold input JSON / `fold_input.json` | AF3 input file containing sequences, chain IDs, and optional references to precomputed features.                                                           |
+| Data pipeline                        | CPU stage that runs sequence searches (MMseqs2/HMMER), collects templates, and generates MSA/template features for inference.                              |
+| Inference pipeline                   | GPU stage that loads model weights and feature files to produce predicted structures and metrics.                                                         |
+| Model weights                        | Trained parameters required by AF3 to perform inference (typically provided as `.bin` or `.bin.zst` files).                                               |
+| Tarball (`.tar.gz`)                  | Compressed archive used to package pipeline outputs for transfer back to the submit host.                                                                 |
+| HTCondor submit file (`.sub`)        | Job description file used by HTCondor to submit tasks to the HTC system.                                                                                  |
+| Apptainer                            | Container runtime (formerly Singularity) commonly used on HPC/HTC systems to run reproducible environments.                                               |
+| Tokens                               | Unit of sequence length used by AF3; roughly 1.2 × residue count across chains is a common token estimate.                                                |
+| Unified memory                       | Mode that allows AF3 to use system RAM in addition to GPU memory to accommodate very large jobs (slower than GPU-only execution).                        |
+| OSDF                                 | CHTC's object-store/file-transfer mechanisms used for staging or retrieving large files (used in some transfer examples).                                 |
+| Pelican                              | Data-transfer tool used to fetch example datasets or objects (see Pelican object storage usage in the repo).                                              |
+| JAX                                  | Numerical computing library used by AF3 for model execution on CPU/GPU backends.                                                                           |
 
 🚀 Run Larger Analyses
 Once you’re comfortable with the basics, try:
