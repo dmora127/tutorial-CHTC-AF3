@@ -800,7 +800,6 @@ Now that you've successfully run the full AlphaFold3 two-stage workflow on the C
 | Tokens                               | Unit of sequence length used by AF3; roughly 1.2 × residue count across chains is a common token estimate.                                                |
 | Unified memory                       | Mode that allows AF3 to use system RAM in addition to GPU memory to accommodate very large jobs (slower than GPU-only execution).                        |
 | OSDF                                 | CHTC's object-store/file-transfer mechanisms used for staging or retrieving large files (used in some transfer examples).                                 |
-| Pelican                              | Data-transfer tool used to fetch example datasets or objects (see Pelican object storage usage in the repo).                                              |
 | JAX                                  | Numerical computing library used by AF3 for model execution on CPU/GPU backends.                                                                           |
 
 🚀 Run Larger Analyses
