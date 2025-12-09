@@ -17,7 +17,7 @@ AlphaFold3 workloads in high-throughput environments are best organized into two
   * Run the AF3 diffusion model 
   * Produce PDB models, ranking, trajectories, and metrics
 
-You will learn how to:
+This tutorial teaches you how to run AlphaFold3 on CHTC using a two-phase workflow and scalable, high-throughput compute practices. You will learn how to:
 
 * **Understand the overall workflow of AlphaFold3 on CHTC**, including how the data-generation and inference stages map to CPU and GPU resources. 
 * **Design, organize, and manage large-scale AF3 workloads**, including preparing inputs, structuring job directories, and generating automated job manifests. 
@@ -65,6 +65,18 @@ All of these steps run across hundreds (or thousands) of jobs using the HTCondor
 
 ## Tutorial Setup
 
+### Before You Begin
+
+You will need the following before moving forward with the tutorial:
+
+1. [X] A CHTC HTC account. If you do not have one, request access at the [CHTC Account Request Page](https://chtc.cs.wisc.edu/uw-research-computing/form.html).
+2. [X] Basic familiarity with HTCondor job submission. If you are new to HTCondor, complete the CHTC ["Roadmap to getting started
+"](https://chtc.cs.wisc.edu/uw-research-computing/htc-roadmap/) and read the ["Practice: Submit HTC Jobs using HTCondor"](https://chtc.cs.wisc.edu/uw-research-computing/htcondor-job-submission).
+3. [X] AlphaFold3 Model Weights. Request the AF3 model weights from the [DeepMind AlphaFold Team](https://github.com/google-deepmind/alphafold3/blob/main/docs/installation.md#obtaining-model-parameters).
+
+> [!WARNING]
+> Requesting AlphaFold3 model weights requires agreeing to DeepMind's terms of service. Ensure you comply with all licensing and usage restrictions when using AF3 for research. This tutorial does not distribute AF3 model weights. **Requesting the weights can take up to several weeks.** Ensure you have them before starting the tutorial.
+
 ### Assumptions and Expectations
 
 This tutorial assumes that you:
@@ -80,16 +92,6 @@ This tutorial assumes that you:
 
 #### Time Estimation
 Estimated time: plan ~1–2 hours for the tutorial walkthrough. Each pipeline execution typically takes 30 minutes or more depending on sequence length and cluster load. Small test runs using `USE_SMALL_DB=1` often complete in 10–30 minutes.
-
-### Prerequisites
-
-1. [X] A CHTC HTC account. If you do not have one, request access at the [CHTC Account Request Page](https://chtc.cs.wisc.edu/uw-research-computing/form.html).
-2. [X] Basic familiarity with HTCondor job submission. If you are new to HTCondor, complete the CHTC ["Roadmap to getting started
-"](https://chtc.cs.wisc.edu/uw-research-computing/htc-roadmap/) and read the ["Practice: Submit HTC Jobs using HTCondor"](https://chtc.cs.wisc.edu/uw-research-computing/htcondor-job-submission).
-3. [X] AlphaFold3 Model Weights. Request the AF3 model weights from the [DeepMind AlphaFold Team](https://github.com/google-deepmind/alphafold3/blob/main/docs/installation.md#obtaining-model-parameters).
-
-> [!WARNING]
-> Requesting AlphaFold3 model weights requires agreeing to DeepMind's terms of service. Ensure you comply with all licensing and usage restrictions when using AF3 for research. This tutorial does not distribute AF3 model weights. **Requesting the weights can take up to several weeks.** Ensure you have them before starting the tutorial.
 
 #### Clone the Tutorial Repository
 
@@ -137,10 +139,10 @@ AlphaFold3 (AF3) uses a two-stage workflow that separates alignment generation f
 
 AF3 converts sequences into features (MSAs, templates) and uses a diffusion model to predict 3D structures. The workflow splits into two stages so you can scale each stage independently:
 
-- **Stage 1 - Data pipeline (CPU)**: runs sequence searches and builds feature files (MSAs, templates, other inputs). This step utilized large sequence databases and is typically a major bottleneck for large batches of jobs. 
+- **Stage 1 - Data pipeline (CPU)**: runs sequence searches and builds feature files (MSAs, templates, other inputs). This step utilized large sequence databases and the disk space requirement (~750GB) is typically a significant bottleneck for large batches of jobs. 
 - **Stage 2 - Inference Pipeline (GPU)** : loads feature files and model weights to produce predicted structures and metrics.
 
-This separation helps you reuse feature outputs, run many inference configurations without re-running searches, and assign resources (CPU vs GPU) efficiently on CHTC.
+This separation into two independent stages allows you to manage the computational resources (CPUs vs GPUs) more efficiently to maximize your throughput on the system. The separate data stage also enables you to reuse portions of your data pipeline, such as your alignments, between jobs with shared biomolecules (for example, screening multiple ligands binding to the same protein).
 
 ### The CPU-Only Pipeline: Generating Alignments (Stage 1)
 
@@ -343,7 +345,7 @@ The data-pipeline stage prepares all alignments, templates, and features needed 
 
 #### AlphaFold3 Databases Availability on CHTC
 
-CHTC maintains a full, pre-extracted copy of the AlphaFold3 reference databases on a subset of CPU execute points. When your data-pipeline jobs match to one of these machines, they can use the local /alphafold3 directory directly, avoiding the costly transfer and extraction of several hundred gigabytes of database files. This dramatically reduces startup time, disk requirements, and overall job runtime. If a job lands on a machine without pre-staged databases, the script automatically falls back to unpacking the databases in the job’s scratch space, ensuring that every job can run regardless of where it matches.
+CHTC maintains a full, pre-extracted copy of the AlphaFold3 reference databases on a subset of execute points. When your data-pipeline jobs match to one of these machines, they can use the local /alphafold3 directory directly, avoiding the costly transfer and extraction of several hundred gigabytes of database files. This dramatically reduces startup time, disk requirements, and overall job runtime. If a job lands on a machine without pre-staged databases, the script automatically falls back to unpacking the databases in the job’s scratch space, ensuring that every job can run regardless of where it matches.
 
 You can target these pre-staged database nodes specifically by adding the requirement command `requirements = (HasAlphafold3 == true)` to your submit file:
 
@@ -402,7 +404,6 @@ You can target these pre-staged database nodes specifically by adding the requir
     | `--verbose` / `--silent` | Adjust verbosity |
     | `--no_copy` | Don’t copy containers/databases locally |
     | `--container <image>` | Path to Apptainer image |
-    | `--random_sleep_minutes <N>` | Randomized delay to prevent thundering herd |
     | `--smalldb` | Use a reduced-size database set |
     | `--extracted_database_path <path>` | Use provided database directory |
 
@@ -866,8 +867,8 @@ Typical GPU memory guidelines:
     | 1200-1850  | 15-20 GB                         |
     | 2000-3000  | 35-40 GB                         |
     | Over 3000  | 70+ GB                           |
-* Unified memory support
-  * Can rescue very large complexes (>10k tokens)
+* Unified memory:
+  * Very large complexes (>10k tokens)
   * Significantly slower
   * Increase `request_memory` if enabling `--enable_unified_memory` in your executable arguments
 
