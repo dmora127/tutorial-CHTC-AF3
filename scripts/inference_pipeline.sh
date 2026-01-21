@@ -54,6 +54,54 @@ function printverbose() {
   fi
 }
 
+function print_help() {
+  cat << 'EOF'
+Usage: inference_pipeline.sh [OPTIONS]
+
+Options:
+  -h, --help
+        Show this help message and exit
+
+  -w, --work_dir_ext <STRING>
+        Suffix for the working directory (default: random)
+
+  -v, --verbose
+        Enable verbose (debug) logging
+
+  -s, --silent
+        Disable informational output
+
+  -n, --no_copy
+        Do not copy container or model files to the local work directory
+
+  -c, --container <FILE>
+        Apptainer container image to use
+
+  -m, --model_param_file <FILE>
+        Path to AlphaFold3 model parameter file
+
+  -x, --user_specified_alphafold_options "<OPTIONS>"
+        Extra options passed directly to run_alphafold.py
+
+  -u, --enable_unified_memory
+        Enable unified memory mode for AlphaFold3
+
+  -f, --mem_preallocation_fraction <FLOAT>
+        Set XLA_CLIENT_MEM_FRACTION when unified memory is enabled
+        Default: 3.2
+
+Examples:
+  Enable unified memory with default memory fraction:
+    ./inference_pipeline.sh -u
+
+  Enable unified memory with custom memory fraction:
+    ./inference_pipeline.sh -u -f 2.5
+
+  HTCondor example:
+    arguments = -u -f 2.8 --container alphafold3.sif
+EOF
+}
+
 ARGS="$@"
 
 while [[ $# -gt 0 ]]; do
@@ -65,12 +113,12 @@ while [[ $# -gt 0 ]]; do
       shift # past value
       ;;
      -v|--verbose)
-      VERBOSE=2
+      VERBOSE_LEVEL=2
       printinfo "Setting PRINT_SUMMARY and VERBOSE on"
       shift # past argument
       ;;
      -s|--silent)
-      VERBOSE=0
+      VERBOSE_LEVEL=0
       printinfo "Setting PRINT_SUMMARY and VERBOSE off" # this will not print
       shift # past argument
       ;;
@@ -99,8 +147,20 @@ while [[ $# -gt 0 ]]; do
       USE_UNIFIED_MEMORY="true"
       shift # past argument
       ;;
+    -f|--mem_preallocation_fraction)
+      MEM_FRACTION="$2"
+      printinfo "Setting XLA_CLIENT_MEM_FRACTION to : ${MEM_FRACTION}"
+      shift # past argument
+      shift # past value
+      ;;
+    -h|--help)
+      print_help
+      exit 0
+      ;;
     -*|--*)
       printerr "Unknown option $1"
+      echo
+      print_help
       exit 1
       ;;
   esac
@@ -176,6 +236,9 @@ fi
 printinfo "SINGIMG_PATH   : $SINGIMG_PATH"
 printinfo "IMG_EXE_CMD    : $IMG_EXE_CMD"
 
+# MODEL_PARAM_FILE must be set
+: "${MODEL_PARAM_FILE:?MODEL_PARAM_FILE must be set via --model_param_file}"
+
 MODEL_PARAM_DIR=`realpath ${WORK_DIR}/models`
 if [[ ${MODEL_PARAM_FILE} == *.zst ]]; then
   cat "${MODEL_PARAM_FILE}"  | \
@@ -211,8 +274,15 @@ if [[ "${USE_UNIFIED_MEMORY:-}" == "true" ]] ; then
   printverbose "Enabling unified memory for Alphafold3 inference"
   export XLA_PYTHON_CLIENT_PREALLOCATE=false
   export TF_FORCE_UNIFIED_MEMORY=true
-  export XLA_CLIENT_MEM_FRACTION=3.2
+  if [[ -n "${MEM_FRACTION:-}" ]]; then
+    export XLA_CLIENT_MEM_FRACTION="${MEM_FRACTION}"
+    printverbose "Using user-specified MEM_FRACTION=${MEM_FRACTION}"
+  else
+    export XLA_CLIENT_MEM_FRACTION=3.2
+    printverbose "Using default MEM_FRACTION=3.2"
+  fi
 fi
+
 
 printinfo "EXTRA_RUN_ALPHAFOLD_FLAGS: $EXTRA_RUN_ALPHAFOLD_FLAGS"
 printinfo "EXTRA_APPTAINER_ENV      : $EXTRA_APPTAINER_ENV"

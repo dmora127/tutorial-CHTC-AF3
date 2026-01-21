@@ -18,21 +18,28 @@ transfer_output_files = $(directory).data_pipeline.tar.gz
 transfer_output_remaps = "$(directory).data_pipeline.tar.gz=inference_inputs/$(directory).data_pipeline.tar.gz"
 
 # We need this to transfer the databases to the execute node
-Requirements = (Target.HasCHTCStaging == true) && (Target.HasAlphafold3 == true)
+# Requirements = (Target.HasCHTCStaging == true) && (Target.HasAlphafold3 == true)
 
 if defined USE_SMALL_DB
   # testing requirements
-  request_memory = 8GB
   request_disk = 16GB
-  request_cpus = 4
   arguments = --smalldb --work_dir_ext $(Cluster)_$(Process) --verbose
 else
   # full requirements
-  request_memory = 8GB
-  # Request less disk if matched machine already has AF3 DB preloaded (650GB savings)
-  request_disk = 700000 - ( (TARGET.HasAlphafold3?: 1) * 650000)
-  request_cpus = 8
+  # Request less disk if matched machine already has AF3 DB preloaded (700GB savings)
+  request_disk = 750000 - ( (TARGET.HasAlphafold3?: 1) * 700000)
   arguments = --work_dir_ext $(Cluster)_$(Proc) 
 endif
+
+if defined GREEDY_MODE
+  request_disk = 750000 - ( (TARGET.HasAlphafold3?: 1) * 700000)
+  Requirements = (Target.HasCHTCStaging == true)
+else
+  Requirements = (Target.HasCHTCStaging == true) && (Target.HasAlphafold3 == true)
+  request_disk = 50GB 
+endif
+
+request_memory = 8GB
+request_cpus = 8
 
 queue directory from list_of_af3_jobs.txt
